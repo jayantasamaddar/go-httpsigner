@@ -78,8 +78,6 @@ import (
 //
 //	Hex(SHA256Hash(""))
 func (s *SigV4) canonicalRequest(req *http.Request) (string, error) {
-	ch, sh := s.getCanonicalAndSignedHeaders(req)
-
 	// Buffer to store request body
 	var buf bytes.Buffer
 	if req.Body != nil {
@@ -93,6 +91,12 @@ func (s *SigV4) canonicalRequest(req *http.Request) (string, error) {
 		// Reset the request body to the captured buffer
 		req.Body = io.NopCloser(&buf)
 	}
+
+	req.Header.Set("Content-Length", fmt.Sprintf("%d", len(buf.Bytes()))) // Set Header, Content-Length
+
+	// Get the Canonical Headers and the Signed Headers
+	ch, sh := s.getCanonicalAndSignedHeaders(req)
+
 	return fmt.Sprintf("%s\n%s\n%s\n%s\n%s\n%s",
 		req.Method,
 		s.getCanonicalURI(req),
@@ -190,7 +194,7 @@ func (s *SigV4) getCanonicalAndSignedHeaders(req *http.Request) (canonicalHeader
 	// The following is true for how the net/http module is implemented in Go:
 	// For incoming requests, the Host header is promoted to the Request.Host field and removed from the Header map.
 	// By adding it this way, we can make sure signatures match in both client and server side
-	ch = append(ch, fmt.Sprintf("%s:%s", "host", req.Host))
+	ch = append(ch, fmt.Sprintf("%s:%s", "host", req.URL.Host))
 	sh = append(sh, "host")
 
 	// Sort the CanonicalHeaders and SignedHeaders

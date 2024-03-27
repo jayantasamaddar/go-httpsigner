@@ -64,7 +64,6 @@ func (s *SigV4) parseAuthHeaders(str string) (*AuthHeaders, error) {
 	if len(parts) != 3 {
 		return authHeaders, fmt.Errorf(ERROR_INCORRECT_FORMAT_HEADER)
 	}
-	// signature := strings.TrimSpace(strings.Split(parts[2], "=")[1])
 
 	for i, v := range parts {
 		switch i {
@@ -75,8 +74,8 @@ func (s *SigV4) parseAuthHeaders(str string) (*AuthHeaders, error) {
 				return authHeaders, fmt.Errorf("%s OR %s", ERROR_INCORRECT_FORMAT_HEADER, "Header name 'Credential' incorrect")
 			}
 			credentialValues := strings.Split(credentials[1], "/")
-			if len(credentialValues) != 4 {
-				return authHeaders, fmt.Errorf("%s:%s", ERROR_INCORRECT_FORMAT_HEADER, "Credential format error")
+			if len(credentialValues) != 5 {
+				return authHeaders, fmt.Errorf("%s: %s", ERROR_INCORRECT_FORMAT_HEADER, "Credential format error")
 			}
 			authHeaders.Credential = &AuthHeaderCredentials{
 				ACCESS_KEY_ID: credentialValues[0],
@@ -189,7 +188,8 @@ func (s *SigV4) VerifySignature(req *http.Request) error {
 
 	// Prepare canonical request
 	clonedReq := req.Clone(context.Background())
-	clonedReq.Header.Del("Authorization")
+	clonedReq.Header.Del("Authorization")   // Remove the Authorization header
+	clonedReq.Header.Del("Accept-Encoding") // Remove any attached `Accept-Encoding` headers that maybe attached when http.Client makes RoundTrip
 
 	canonicalRequest, err := s.canonicalRequest(clonedReq)
 	if err != nil {

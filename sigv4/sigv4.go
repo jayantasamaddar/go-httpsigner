@@ -254,7 +254,7 @@ func (s *SigV4) getCredentialScope(dateString, region, service string) string {
 	}
 	//Extract year, month, and day
 	YYYY, MM, DD := parsedTime.Date()
-	return fmt.Sprintf("%s/%s/%s",
+	return fmt.Sprintf("%s/%s/%s/aws4_request",
 		fmt.Sprintf("%d%d%d", YYYY, MM, DD),
 		region,
 		service,
@@ -270,8 +270,8 @@ func (s *SigV4) generateSignature(signingKey []byte, stringToSign string) (strin
 // (5) Takes in a pointer to a http.Request and add the Signature to the Authorization Header.
 // The Signer only needs access to this method to sign a HTTP Request. This method utilizes all other sub-methods, like `CanonicalRequest`.
 func (s *SigV4) SignHTTPRequest(req *http.Request) error {
-	// Set the time
-	req.Header.Set(s.dateHeader(), time.Now().Format(time.RFC3339Nano))
+	// Set Headers
+	req.Header.Set(s.dateHeader(), time.Now().Format(time.RFC3339Nano)) // Set the dateHeader
 
 	// (1) Get the `CanonicalRequest`
 	cr, err := s.canonicalRequest(req)
@@ -294,12 +294,15 @@ func (s *SigV4) SignHTTPRequest(req *http.Request) error {
 		return err
 	}
 
+	// Get signed headers (used in the authHeader)
+	_, sh := s.getCanonicalAndSignedHeaders(req)
+
 	// Credential: A string that consists of your access key ID, the date in YYYYMMDD format, the Region code, the service code, and the aws4_request termination string, separated by slashes (/). The Region code, service code, and termination string must use lowercase characters.
 	// E.g. `AKIAIOSFODNN7EXAMPLE/YYYYMMDD/region/service/aws4_request`
 	authHeader := fmt.Sprintf("%s %s,%s,%s",
 		"AWS4-HMAC-SHA256",
 		fmt.Sprintf("Credential=%s/%s", s.env.ACCESS_KEY_ID, s.getCredentialScope(req.Header.Get(s.dateHeader()), s.env.REGION, s.service)),
-		fmt.Sprintf("SignedHeaders=%s", "content-type;host;x-sym-date"),
+		fmt.Sprintf("SignedHeaders=%s", sh),
 		fmt.Sprintf("Signature=%s", signature),
 	)
 	req.Header.Set("Authorization", authHeader)

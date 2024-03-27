@@ -1,6 +1,7 @@
 package sigv4
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -71,8 +72,17 @@ func Test_VerifySignature(t *testing.T) {
 		return
 	}
 
+	// Mock Body
+	b, err := json.Marshal(map[string]string{
+		"first_name": "Bruce",
+		"last_name":  "Wayne",
+	})
+	if err != nil {
+		t.Error("Mock Body:", err)
+	}
+
 	for _, url := range urls {
-		req, _ := http.NewRequest("GET", url, nil)
+		req, _ := http.NewRequest("POST", url, bytes.NewBuffer(b))
 		req.Header.Set("Content-Type", "application/json")
 
 		err := signer.SignHTTPRequest(req)
