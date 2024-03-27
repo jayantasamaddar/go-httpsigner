@@ -189,10 +189,9 @@ func (s *SigV4) VerifySignature(req *http.Request) error {
 	// Prepare canonical request
 	clonedReq := req.Clone(context.Background())
 	clonedReq.Header.Del("Authorization")
-	// Removed because of Host header being stripped
-	// if len(clonedReq.Header) != len(authHeaders.SignedHeaders) {
-	// 	return fmt.Errorf("%s: %s", ERROR_INCORRECT_FORMAT_HEADER, "SignedHeaders do not match headers")
-	// }
+	if len(clonedReq.Header) != len(authHeaders.SignedHeaders) {
+		return fmt.Errorf("%s: %s", ERROR_INCORRECT_FORMAT_HEADER, "SignedHeaders do not match headers")
+	}
 	canonicalRequest, err := s.canonicalRequest(clonedReq)
 	if err != nil {
 		return err
