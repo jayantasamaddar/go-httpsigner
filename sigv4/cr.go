@@ -79,12 +79,19 @@ import (
 //	Hex(SHA256Hash(""))
 func (s *SigV4) canonicalRequest(req *http.Request) (string, error) {
 	ch, sh := s.getCanonicalAndSignedHeaders(req)
-	var body bytes.Buffer
+
+	// Buffer to store request body
+	var buf bytes.Buffer
 	if req.Body != nil {
-		_, err := io.Copy(&body, req.Body)
+		// Read the request body and capture it into a buffer
+		teeReader := io.TeeReader(req.Body, &buf)
+		_, err := io.ReadAll(teeReader)
 		if err != nil {
 			return "", nil
 		}
+
+		// Reset the request body to the captured buffer
+		req.Body = io.NopCloser(&buf)
 	}
 	return fmt.Sprintf("%s\n%s\n%s\n%s\n%s\n%s",
 		req.Method,
@@ -92,7 +99,7 @@ func (s *SigV4) canonicalRequest(req *http.Request) (string, error) {
 		s.getCanonicalQueryString(req),
 		ch,
 		sh,
-		utils.Hash(body.Bytes()),
+		utils.Hash(buf.Bytes()),
 	), nil
 }
 
