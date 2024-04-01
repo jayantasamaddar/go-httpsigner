@@ -194,7 +194,7 @@ func (s *SigV4) getCanonicalAndSignedHeaders(req *http.Request) (canonicalHeader
 	// The following is true for how the net/http module is implemented in Go:
 	// For incoming requests, the Host header is promoted to the Request.Host field and removed from the Header map.
 	// By adding it this way, we can make sure signatures match in both client and server side
-	ch = append(ch, fmt.Sprintf("%s:%s", "host", req.URL.Host))
+	ch = append(ch, fmt.Sprintf("%s:%s", "host", req.Host))
 	sh = append(sh, "host")
 
 	// Sort the CanonicalHeaders and SignedHeaders

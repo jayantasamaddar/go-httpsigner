@@ -195,6 +195,7 @@ func (s *SigV4) VerifySignature(req *http.Request) error {
 	if err != nil {
 		return err
 	}
+	req.Body = clonedReq.Body // The req.Body gets read inside the canonicalRequest, and needs to be reassigned
 
 	// Prepare string-to-sign
 	stringToSign := s.stringToSign(date, authHeaders.Credential.Region, authHeaders.Credential.Service, canonicalRequest)
