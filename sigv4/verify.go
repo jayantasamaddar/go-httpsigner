@@ -186,10 +186,16 @@ func (s *SigV4) VerifySignature(req *http.Request) error {
 		return fmt.Errorf(ERROR_INCORRECT_ALGORITHM)
 	}
 
-	// Prepare canonical request
+	// Prepare canonical request.
 	clonedReq := req.Clone(context.Background())
-	clonedReq.Header.Del("Authorization")   // Remove the Authorization header
-	clonedReq.Header.Del("Accept-Encoding") // Remove any attached `Accept-Encoding` headers that maybe attached when http.Client makes RoundTrip
+	clear(clonedReq.Header) // clear all Headers; we will reassign only signed headers
+	// Set signed headers to clonedReq
+	for _, header := range authHeaders.SignedHeaders {
+		if header == "host" {
+			continue
+		}
+		clonedReq.Header.Set(header, req.Header.Get(header))
+	}
 
 	canonicalRequest, err := s.canonicalRequest(clonedReq)
 	if err != nil {
